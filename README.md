@@ -1,6 +1,6 @@
 # 项目名称
 
-简短的项目描述
+Carlsama mini-react
 
 ## day 1
 
@@ -26,3 +26,10 @@
 **Q：当 DOM 树非常庞大的话，执行 render 函数会出现什么情况？**  
 
 A：首先由于疯狂调用浏览器API createElement 会创建许多新的 DOM 对象，这会消耗一定的内存，当 DOM 树特别庞大的时候，大量内存可能导致浏览器变卡或者崩溃。且由于浏览器需要花费时间渲染新创建的 DOM 元素，会花费大量时间渲染，也会让浏览器变卡。也是为什么React或者Vue都选择虚拟DOM的原因之一。
+
+
+### 第三节
+#### 拆解
+1. 新增 vitest
+2. 对 createElement 进行单元测试
+3. expect(el).toMatchInlineSnapshot 快速生成快照
