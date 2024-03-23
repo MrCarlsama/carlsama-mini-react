@@ -1,5 +1,5 @@
 const TextType = "TEXT_ELEMENT";
-export function createTextNode(text) {
+function createTextNode(text) {
   return {
     type: TextType,
     props: {
@@ -9,7 +9,7 @@ export function createTextNode(text) {
   };
 }
 
-export function createElement(type, props, ...children) {
+function createElement(type, props, ...children) {
   return {
     type,
     props: {
@@ -21,7 +21,7 @@ export function createElement(type, props, ...children) {
   };
 }
 
-export function render(el, container) {
+function render(el, container) {
   const node =
     el.type === TextType
       ? document.createTextNode("")
@@ -43,3 +43,8 @@ export function render(el, container) {
 
   container.append(node);
 }
+
+export const React = {
+  createElement,
+  render,
+};
