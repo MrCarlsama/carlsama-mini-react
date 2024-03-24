@@ -33,3 +33,21 @@ A：首先由于疯狂调用浏览器API createElement 会创建许多新的 DOM
 1. 新增 vitest
 2. 对 createElement 进行单元测试
 3. expect(el).toMatchInlineSnapshot 快速生成快照
+
+
+## day 2
+
+#### 拆解
+
+1. 通过 requestIdleCallback 利用空闲时间渲染 dom
+
+2. 简易 fiber 架构
+  - 构建成树结构，然后依次顺序查找
+  - 先找 子节点
+  - 其次找 兄弟节点
+  - 最后找 叔叔节点
+
+3. 构建“边渲染边找”函数
+  - 创建 dom 和 更新 props
+  - 初始化子节点
+  - 返回下一个执行任务
