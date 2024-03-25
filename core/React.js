@@ -15,7 +15,9 @@ function createElement(type, props, ...children) {
     props: {
       ...props,
       children: children.map((child) => {
-        return typeof child === "string" ? createTextNode(child) : child;
+        const isTextNode =
+          typeof child === "string" || typeof child === "number";
+        return isTextNode ? createTextNode(child) : child;
       }),
     },
   };
@@ -62,17 +64,24 @@ function updateProps(dom, props) {
 }
 
 function performWorkOfUnit(fiber) {
-  if (!fiber.dom) {
-    const node = createDom(fiber.type);
+  const isFunctionComponent = typeof fiber.type === "function";
+  if (!isFunctionComponent) {
+    if (!fiber.dom) {
+      const node = createDom(fiber.type);
 
-    fiber.dom = node;
-    fiber.parent.dom.append(node);
+      fiber.dom = node;
+      // fiber.parent.dom.append(node);
 
-    updateProps(fiber.dom, fiber.props);
+      updateProps(fiber.dom, fiber.props);
+    }
   }
 
+  const children = isFunctionComponent
+    ? [fiber.type(fiber.props)]
+    : fiber.props.children;
+
   let prevChild = null;
-  fiber.props.children.forEach((child, index) => {
+  children.forEach((child, index) => {
     const newWork = {
       type: child.type,
       props: child.props,
@@ -101,7 +110,8 @@ function performWorkOfUnit(fiber) {
     return fiber.parent?.sibling || fiber.parent?.next(true);
   };
 
-  return fiber.next();
+  let next = fiber.next();
+  return next;
 }
 
 // ## day 3
@@ -119,8 +129,17 @@ function commitRoot() {
 }
 
 function commitWork(fiber) {
-  if (!fiber?.dom) return;
-  fiber.parent.dom.append(fiber.dom);
+  if (!fiber) return;
+
+  let fiberParent = fiber.parent;
+  while (!fiberParent.dom) {
+    fiberParent = fiberParent.parent;
+  }
+
+  if (fiber.dom) {
+    fiberParent.dom.append(fiber.dom);
+  }
+
   commitWork(fiber.child);
   commitWork(fiber.sibling);
 }
@@ -134,9 +153,9 @@ const workLoop = (deadline) => {
     shouldYield = deadline.timeRemaining() < 1;
   }
 
-  // if (!nextWorkOfUnit && rootWork) {
-  //   commitRoot();
-  // }
+  if (!nextWorkOfUnit && rootWork) {
+    commitRoot();
+  }
 
   requestIdleCallback(workLoop);
 };
