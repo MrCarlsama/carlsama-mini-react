@@ -28,6 +28,8 @@ function render(el, container) {
     },
     dom: container,
   };
+
+  rootWork = nextWorkOfUnit;
 }
 
 // 2. 简易 fiber 架构
@@ -41,41 +43,47 @@ function render(el, container) {
 //   - 初始化子节点
 //   - 返回下一个执行任务
 
-function performWorkOfUnit(work) {
-  if (!work.dom) {
-    const node =
-      work.type === TextType
-        ? document.createTextNode("")
-        : document.createElement(work.type);
+function createDom(type) {
+  return type === TextType
+    ? document.createTextNode("")
+    : document.createElement(type);
+}
 
-    work.dom = node;
-    console.log(work);
-    work.parent.dom.append(node);
+function updateProps(dom, props) {
+  const ignoreKey = ["children"];
+  Object.keys(props).forEach((key) => {
+    /**
+     * 过滤无需处理
+     */
+    if (!ignoreKey.includes(key)) {
+      dom[key] = props[key];
+    }
+  });
+}
 
-    const ignoreKey = ["children"];
-    Object.keys(work.props).forEach((key) => {
-      /**
-       * 过滤无需处理
-       */
-      if (!ignoreKey.includes(key)) {
-        node[key] = work.props[key];
-      }
-    });
+function performWorkOfUnit(fiber) {
+  if (!fiber.dom) {
+    const node = createDom(fiber.type);
+
+    fiber.dom = node;
+    fiber.parent.dom.append(node);
+
+    updateProps(fiber.dom, fiber.props);
   }
 
   let prevChild = null;
-  work.props.children.forEach((child, index) => {
+  fiber.props.children.forEach((child, index) => {
     const newWork = {
       type: child.type,
       props: child.props,
       child: null,
-      parent: work,
+      parent: fiber,
       sibling: null,
       dom: null,
     };
 
     if (index === 0) {
-      work.child = newWork;
+      fiber.child = newWork;
     } else {
       prevChild.sibling = newWork;
     }
@@ -83,12 +91,41 @@ function performWorkOfUnit(work) {
     prevChild = newWork;
   });
 
-  if (work.child) return work.child;
-  if (work.sibling) return work.sibling;
+  fiber.next = (deep = false) => {
+    if (!deep && fiber.child) {
+      return fiber.child;
+    }
+    if (fiber.sibling) {
+      return fiber.sibling;
+    }
+    return fiber.parent?.sibling || fiber.parent?.next(true);
+  };
 
-  return work.parent?.sibling;
+  return fiber.next();
 }
 
+// ## day 3
+
+// #### 拆解
+
+// 1. 通过步骤后置，将dom添加渲染统一放到最后，解决界面可能只渲染部份节点的问题
+//   - 移除单个任务中的 append 逻辑
+//   - 当所有任务构建结束后，在执行 统一渲染视图 逻辑
+//   - 通过递归虚拟DOM 渲染
+
+function commitRoot() {
+  commitWork(rootWork.child);
+  rootWork = null;
+}
+
+function commitWork(fiber) {
+  if (!fiber?.dom) return;
+  fiber.parent.dom.append(fiber.dom);
+  commitWork(fiber.child);
+  commitWork(fiber.sibling);
+}
+
+let rootWork = null;
 let nextWorkOfUnit = null;
 const workLoop = (deadline) => {
   let shouldYield = false;
@@ -96,6 +133,10 @@ const workLoop = (deadline) => {
     nextWorkOfUnit = performWorkOfUnit(nextWorkOfUnit);
     shouldYield = deadline.timeRemaining() < 1;
   }
+
+  // if (!nextWorkOfUnit && rootWork) {
+  //   commitRoot();
+  // }
 
   requestIdleCallback(workLoop);
 };
