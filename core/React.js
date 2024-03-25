@@ -63,23 +63,25 @@ function updateProps(dom, props) {
   });
 }
 
-function performWorkOfUnit(fiber) {
-  const isFunctionComponent = typeof fiber.type === "function";
-  if (!isFunctionComponent) {
-    if (!fiber.dom) {
-      const node = createDom(fiber.type);
+function updateFunctionComponent(fiber) {
+  const children = [fiber.type(fiber.props)];
+  initChildren(children, fiber);
+}
 
-      fiber.dom = node;
-      // fiber.parent.dom.append(node);
+function updateHostComponent(fiber) {
+  if (!fiber.dom) {
+    const node = createDom(fiber.type);
 
-      updateProps(fiber.dom, fiber.props);
-    }
+    fiber.dom = node;
+    // fiber.parent.dom.append(node);
+
+    updateProps(fiber.dom, fiber.props);
   }
+  const children = fiber.props.children;
+  initChildren(children, fiber);
+}
 
-  const children = isFunctionComponent
-    ? [fiber.type(fiber.props)]
-    : fiber.props.children;
-
+function initChildren(children, fiber) {
   let prevChild = null;
   children.forEach((child, index) => {
     const newWork = {
@@ -99,6 +101,15 @@ function performWorkOfUnit(fiber) {
 
     prevChild = newWork;
   });
+}
+
+function performWorkOfUnit(fiber) {
+  const isFunctionComponent = typeof fiber.type === "function";
+  if (isFunctionComponent) {
+    updateFunctionComponent(fiber);
+  } else {
+    updateHostComponent(fiber);
+  }
 
   fiber.next = (deep = false) => {
     if (!deep && fiber.child) {
