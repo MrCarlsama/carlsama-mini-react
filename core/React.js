@@ -23,17 +23,6 @@ function createElement(type, props, ...children) {
   };
 }
 
-function render(el, container) {
-  nextWorkOfUnit = {
-    props: {
-      children: [el],
-    },
-    dom: container,
-  };
-
-  rootWork = nextWorkOfUnit;
-}
-
 // 2. 简易 fiber 架构
 //   - 构建成树结构，然后依次顺序查找
 //   - 先找 子节点
@@ -51,19 +40,39 @@ function createDom(type) {
     : document.createElement(type);
 }
 
-function updateProps(dom, props) {
+function updateProps(dom, nextProps, prevProps) {
   const ignoreKey = ["children"];
-  Object.keys(props).forEach((key) => {
+
+  // 1. old 有， new 没有 --> 删除
+  Object.keys(prevProps ?? {}).forEach((key) => {
     /**
      * 过滤无需处理
      */
     if (ignoreKey.includes(key)) return;
-    const isEventProps = key.startsWith("on");
-    if (isEventProps) {
-      const eventType = key.slice("on".length).toLocaleLowerCase();
-      dom.addEventListener(eventType, props[key]);
-    } else {
-      dom[key] = props[key];
+
+    if (!(key in nextProps)) {
+      dom.removeAttribute(key);
+    }
+  });
+
+  // 2. new 有, old 没有 --> 添加
+  // 3. old 有， new 有  --> 修改
+
+  Object.keys(nextProps ?? {}).forEach((key) => {
+    /**
+     * 过滤无需处理
+     */
+    if (ignoreKey.includes(key)) return;
+
+    if (nextProps[key] !== prevProps?.[key]) {
+      const isEventProps = key.startsWith("on");
+      if (isEventProps) {
+        const eventType = key.slice("on".length).toLocaleLowerCase();
+        dom.removeEventListener(eventType, prevProps?.[key]);
+        dom.addEventListener(eventType, nextProps[key]);
+      } else {
+        dom[key] = nextProps[key];
+      }
     }
   });
 }
@@ -87,24 +96,46 @@ function updateHostComponent(fiber) {
 }
 
 function initChildren(children, fiber) {
+  let oldFiber = fiber.alternate?.child;
   let prevChild = null;
   children.forEach((child, index) => {
-    const newWork = {
-      type: child.type,
-      props: child.props,
-      child: null,
-      parent: fiber,
-      sibling: null,
-      dom: null,
-    };
+    const isSameType = oldFiber?.type === child.type;
 
-    if (index === 0) {
-      fiber.child = newWork;
+    let newFiber;
+    if (isSameType) {
+      newFiber = {
+        type: child.type,
+        props: child.props,
+        child: null,
+        parent: fiber,
+        sibling: null,
+        dom: oldFiber.dom,
+        effectTag: "update",
+        alternate: oldFiber,
+      };
     } else {
-      prevChild.sibling = newWork;
+      newFiber = {
+        type: child.type,
+        props: child.props,
+        child: null,
+        parent: fiber,
+        sibling: null,
+        dom: null,
+        effectTag: "placement",
+      };
     }
 
-    prevChild = newWork;
+    if (oldFiber) {
+      oldFiber = oldFiber.sibling;
+    }
+
+    if (index === 0) {
+      fiber.child = newFiber;
+    } else {
+      prevChild.sibling = newFiber;
+    }
+
+    prevChild = newFiber;
   });
 }
 
@@ -138,9 +169,12 @@ function performWorkOfUnit(fiber) {
 //   - 移除单个任务中的 append 逻辑
 //   - 当所有任务构建结束后，在执行 统一渲染视图 逻辑
 //   - 通过递归虚拟DOM 渲染
-
+let rootWork = null;
+let nextWorkOfUnit = null;
+let currentRoot = null;
 function commitRoot() {
   commitWork(rootWork.child);
+  currentRoot = rootWork;
   rootWork = null;
 }
 
@@ -152,16 +186,18 @@ function commitWork(fiber) {
     fiberParent = fiberParent.parent;
   }
 
-  if (fiber.dom) {
-    fiberParent.dom.append(fiber.dom);
+  if (fiber.effectTag === "update") {
+    updateProps(fiber.dom, fiber.props, fiber.alternate?.props);
+  } else if (fiber.effectTag === "placement") {
+    if (fiber.dom) {
+      fiberParent.dom.append(fiber.dom);
+    }
   }
 
   commitWork(fiber.child);
   commitWork(fiber.sibling);
 }
 
-let rootWork = null;
-let nextWorkOfUnit = null;
 const workLoop = (deadline) => {
   let shouldYield = false;
   while (!shouldYield && nextWorkOfUnit) {
@@ -178,7 +214,28 @@ const workLoop = (deadline) => {
 
 requestIdleCallback(workLoop);
 
+function update() {
+  nextWorkOfUnit = {
+    props: currentRoot.props,
+    dom: currentRoot.dom,
+    alternate: currentRoot,
+  };
+
+  rootWork = nextWorkOfUnit;
+}
+function render(el, container) {
+  nextWorkOfUnit = {
+    props: {
+      children: [el],
+    },
+    dom: container,
+  };
+
+  rootWork = nextWorkOfUnit;
+}
+
 export const React = {
+  update,
   createElement,
   render,
 };

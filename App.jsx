@@ -1,8 +1,15 @@
 import { React } from "./core/React.js";
 // export const App = React.createElement("div", { id: "app" }, "Carl");
-
+let i = 0
 function Counter({num}) {
-    return <div>counter: {num}</div>
+    function updateCount() {
+        i++
+        React.update()
+    } 
+    return <div>counter: {num}
+        <button onClick={updateCount}>btn {i}</button>
+    
+    </div>
 }
 
 
@@ -11,7 +18,6 @@ export const App = <div id='app'>
         Carl
         <div>aaaa</div>
         Carl 2
-        <button onClick={() => {console.log(1)}}>btn</button>
         <Counter num={10}></Counter>
         <Counter num={20}></Counter>
     </div>
