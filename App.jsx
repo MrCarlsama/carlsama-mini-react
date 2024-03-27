@@ -11,6 +11,7 @@ export const App = <div id='app'>
         Carl
         <div>aaaa</div>
         Carl 2
+        <button onClick={() => {console.log(1)}}>btn</button>
         <Counter num={10}></Counter>
         <Counter num={20}></Counter>
     </div>

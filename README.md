@@ -69,3 +69,12 @@ A：首先由于疯狂调用浏览器API createElement 会创建许多新的 DOM
 #### 拆解
 1. 实现 Function Component
 2. 区别type 是否为函数，如果是，需要执行函数获取结果
+
+
+## day 4
+
+### 第一节
+
+#### 拆解
+
+1. 实现事件机制，通过 props 判断 on 开头的属性

@@ -57,7 +57,12 @@ function updateProps(dom, props) {
     /**
      * 过滤无需处理
      */
-    if (!ignoreKey.includes(key)) {
+    if (ignoreKey.includes(key)) return;
+    const isEventProps = key.startsWith("on");
+    if (isEventProps) {
+      const eventType = key.slice("on".length).toLocaleLowerCase();
+      dom.addEventListener(eventType, props[key]);
+    } else {
       dom[key] = props[key];
     }
   });
