@@ -79,7 +79,7 @@ function updateProps(dom, nextProps, prevProps) {
 
 function updateFunctionComponent(fiber) {
   const children = [fiber.type(fiber.props)];
-  initChildren(children, fiber);
+  reconcileChildren(children, fiber);
 }
 
 function updateHostComponent(fiber) {
@@ -92,10 +92,10 @@ function updateHostComponent(fiber) {
     updateProps(fiber.dom, fiber.props);
   }
   const children = fiber.props.children;
-  initChildren(children, fiber);
+  reconcileChildren(children, fiber);
 }
 
-function initChildren(children, fiber) {
+function reconcileChildren(children, fiber) {
   let oldFiber = fiber.alternate?.child;
   let prevChild = null;
   children.forEach((child, index) => {
@@ -169,13 +169,13 @@ function performWorkOfUnit(fiber) {
 //   - 移除单个任务中的 append 逻辑
 //   - 当所有任务构建结束后，在执行 统一渲染视图 逻辑
 //   - 通过递归虚拟DOM 渲染
-let rootWork = null;
+let wipRoot = null;
 let nextWorkOfUnit = null;
 let currentRoot = null;
 function commitRoot() {
-  commitWork(rootWork.child);
-  currentRoot = rootWork;
-  rootWork = null;
+  commitWork(wipRoot.child);
+  currentRoot = wipRoot;
+  wipRoot = null;
 }
 
 function commitWork(fiber) {
@@ -205,7 +205,7 @@ const workLoop = (deadline) => {
     shouldYield = deadline.timeRemaining() < 1;
   }
 
-  if (!nextWorkOfUnit && rootWork) {
+  if (!nextWorkOfUnit && wipRoot) {
     commitRoot();
   }
 
@@ -215,23 +215,23 @@ const workLoop = (deadline) => {
 requestIdleCallback(workLoop);
 
 function update() {
-  nextWorkOfUnit = {
+  wipRoot = {
     props: currentRoot.props,
     dom: currentRoot.dom,
     alternate: currentRoot,
   };
 
-  rootWork = nextWorkOfUnit;
+  nextWorkOfUnit = wipRoot;
 }
 function render(el, container) {
-  nextWorkOfUnit = {
+  wipRoot = {
     props: {
       children: [el],
     },
     dom: container,
   };
 
-  rootWork = nextWorkOfUnit;
+  nextWorkOfUnit = wipRoot;
 }
 
 export const React = {
