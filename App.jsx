@@ -25,9 +25,14 @@ function ShowBar() {
 
   const bar = <p>bar</p>;
   return (
+    // <div>
+    //   <button onClick={updateShowBar}>change</button>
+    //   {bool ? <Foo /> : bar}
+    // </div>
     <div>
       <button onClick={updateShowBar}>change</button>
-      {bool ? <Foo /> : bar}
+      {bool && <Foo />}
+      <div>1</div>
     </div>
   );
 }
