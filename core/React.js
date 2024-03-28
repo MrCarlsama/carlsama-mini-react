@@ -91,15 +91,17 @@ function updateHostComponent(fiber) {
 
     updateProps(fiber.dom, fiber.props);
   }
+
   const children = fiber.props.children;
   reconcileChildren(children, fiber);
 }
 
+let deletions = [];
 function reconcileChildren(children, fiber) {
   let oldFiber = fiber.alternate?.child;
   let prevChild = null;
   children.forEach((child, index) => {
-    const isSameType = oldFiber?.type === child.type;
+    const isSameType = oldFiber && oldFiber.type === child.type;
 
     let newFiber;
     if (isSameType) {
@@ -123,6 +125,10 @@ function reconcileChildren(children, fiber) {
         dom: null,
         effectTag: "placement",
       };
+
+      if (oldFiber) {
+        deletions.push(oldFiber);
+      }
     }
 
     if (oldFiber) {
@@ -161,6 +167,20 @@ function performWorkOfUnit(fiber) {
   return next;
 }
 
+function commitDeletions(fiber) {
+  const isFunctionComponent = typeof fiber.type === "function";
+  if (isFunctionComponent) {
+    commitDeletions(fiber.child);
+  } else {
+    let fiberParent = fiber.parent;
+    while (!fiberParent.dom) {
+      fiberParent = fiberParent.parent;
+    }
+
+    fiberParent.dom.removeChild(fiber.dom);
+  }
+}
+
 // ## day 3
 
 // #### 拆解
@@ -173,9 +193,11 @@ let wipRoot = null;
 let nextWorkOfUnit = null;
 let currentRoot = null;
 function commitRoot() {
+  deletions.forEach(commitDeletions);
   commitWork(wipRoot.child);
   currentRoot = wipRoot;
   wipRoot = null;
+  deletions = [];
 }
 
 function commitWork(fiber) {

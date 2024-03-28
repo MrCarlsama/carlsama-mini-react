@@ -86,3 +86,13 @@ A：首先由于疯狂调用浏览器API createElement 会创建许多新的 DOM
 1. 实现 更新 Props
 2. 创建新旧 vdom 树，新的指向旧的
 3. 对比 props
+
+## day 5
+
+### 第一节
+
+#### 拆解
+
+1. 实现更新 children
+2. 当 type 不一致时，需要删除旧的 dom 树
+3. 收集需要被删除的 dom 树。在统计提交时候进行移除
