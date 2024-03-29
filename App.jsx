@@ -3,9 +3,10 @@ import { React } from "./core/React.js";
 let i = 0;
 let bool = false;
 function Counter({ num }) {
+  const update = React.update();
   function updateCount() {
+    update();
     i++;
-    React.update();
   }
   return (
     <div>
@@ -14,15 +15,16 @@ function Counter({ num }) {
     </div>
   );
 }
-function updateShowBar() {
-  bool = !bool;
-  React.update();
-}
+
 function ShowBar() {
   function Foo() {
     return <div>Foo</div>;
   }
-
+  const update = React.update();
+  function updateShowBar() {
+    bool = !bool;
+    update();
+  }
   const bar = <p>bar</p>;
   return (
     // <div>

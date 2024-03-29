@@ -78,6 +78,7 @@ function updateProps(dom, nextProps, prevProps) {
 }
 
 function updateFunctionComponent(fiber) {
+  wipFiber = fiber;
   const children = [fiber.type(fiber.props)];
   reconcileChildren(children, fiber);
 }
@@ -201,6 +202,7 @@ function commitDeletions(fiber) {
 let wipRoot = null;
 let nextWorkOfUnit = null;
 let currentRoot = null;
+let wipFiber = null;
 function commitRoot() {
   deletions.forEach(commitDeletions);
   commitWork(wipRoot.child);
@@ -233,6 +235,11 @@ const workLoop = (deadline) => {
   let shouldYield = false;
   while (!shouldYield && nextWorkOfUnit) {
     nextWorkOfUnit = performWorkOfUnit(nextWorkOfUnit);
+
+    if (wipRoot?.sibling?.type === nextWorkOfUnit?.type) {
+      nextWorkOfUnit = undefined;
+    }
+
     shouldYield = deadline.timeRemaining() < 1;
   }
 
@@ -246,13 +253,16 @@ const workLoop = (deadline) => {
 requestIdleCallback(workLoop);
 
 function update() {
-  wipRoot = {
-    props: currentRoot.props,
-    dom: currentRoot.dom,
-    alternate: currentRoot,
-  };
+  let currentFiber = wipFiber;
 
-  nextWorkOfUnit = wipRoot;
+  return () => {
+    wipRoot = {
+      ...currentFiber,
+      alternate: currentFiber,
+    };
+
+    nextWorkOfUnit = wipRoot;
+  };
 }
 function render(el, container) {
   wipRoot = {

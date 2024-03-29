@@ -109,3 +109,9 @@ A：首先由于疯狂调用浏览器API createElement 会创建许多新的 DOM
 #### 拆解
 
 1. 判断 “false ” 节点，需要进行跳过处理
+
+#### 第四节
+
+1. 实现减少多余计算
+2. 在 Function Component 记住 fiber， 通过 update 闭包函数截取
+3. 判断下一个节点 与 旧节点的下一节类型是否相同
